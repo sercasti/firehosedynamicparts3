@@ -11,9 +11,6 @@
     "aws-sdk": "^2.1354.0",
     "uuid": "^9.0.0"
   },
-  "scripts": {
-    "test": "mocha tests/unit/"
-  },
   "devDependencies": {
     "chai": "^4.3.6",
     "mocha": "^10.1.0"
