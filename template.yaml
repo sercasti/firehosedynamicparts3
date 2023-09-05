@@ -1,0 +1,97 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Sample SAM Template for aws-lambda-nodejs-example
+
+Resources:
+  HelloWorldFunction:
+    Type: AWS::Serverless::Function 
+    Properties:
+      CodeUri: hello-world/
+      Handler: app.lambdaHandler
+      Runtime: nodejs18.x
+      Architectures:
+        - x86_64
+      Events:
+        MyCloudWatchEvent:
+          Type: Schedule
+          Properties:
+            Schedule: 'rate(1 minute)'
+            Enabled: false
+
+  S3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "mysamplebucketkf-${AWS::AccountId}"
+
+  FirehoseDeliveryStream:
+    Type: AWS::KinesisFirehose::DeliveryStream
+    Properties:
+      DeliveryStreamName: 'myDeliveryStream'
+      DeliveryStreamType: DirectPut
+      ExtendedS3DestinationConfiguration:
+        BucketARN: !GetAtt S3Bucket.Arn
+        RoleARN: !GetAtt DeliveryRole.Arn
+        BufferingHints:
+          SizeInMBs: 128
+          IntervalInSeconds: 900
+        CompressionFormat: GZIP
+        ErrorOutputPrefix: table/error/!{firehose:error-output-type}/
+        Prefix: TENANT=!{partitionKeyFromQuery:TENANT}/YYYY=!{partitionKeyFromQuery:YYYY}/MM=!{partitionKeyFromQuery:MM}//DD=!{partitionKeyFromQuery:DD}/HH=!{partitionKeyFromQuery:HH}/
+        CloudWatchLoggingOptions: 
+          Enabled: true
+          LogGroupName: !Ref LogGroup
+          LogStreamName: !Ref LogStream
+        DynamicPartitioningConfiguration:
+          Enabled: true
+        ProcessingConfiguration:
+          Enabled: true
+          Processors:
+          - Type: MetadataExtraction
+            Parameters:
+            - ParameterName: MetadataExtractionQuery
+              ParameterValue: '{TENANT: .tenant, YYYY: .created| strftime("%Y"), MM: .created| strftime("%m"), DD: .created| strftime("%d"), HH: .created| strftime("%H")}'
+            - ParameterName: JsonParsingEngine
+              ParameterValue: JQ-1.6
+          - Type: AppendDelimiterToRecord
+            Parameters:
+            - ParameterName: Delimiter
+              ParameterValue: "\\n"
+
+  DeliveryRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal: {Service: firehose.amazonaws.com}
+      Policies:
+        - PolicyName: firehose_delivery_policy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:AbortMultipartUpload
+                  - s3:GetBucketLocation
+                  - s3:GetObject
+                  - s3:ListBucket
+                  - s3:ListBucketMultipartUploads
+                  - s3:PutObject
+                Resource:
+                  - !GetAtt S3Bucket.Arn
+                  - !Sub '${S3Bucket.Arn}/*'
+              - Effect: Allow
+                Action:
+                  - logs:PutLogEvents
+                Resource: !GetAtt LogGroup.Arn
+
+  LogGroup: 
+    Type: AWS::Logs::LogGroup
+
+  LogStream: 
+    Type: AWS::Logs::LogStream
+    Properties: 
+      LogGroupName:
+        Ref: LogGroup
+      LogStreamName: event-lake-s3
