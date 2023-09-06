@@ -43,7 +43,7 @@ Resources:
           IntervalInSeconds: 900
         CompressionFormat: GZIP
         ErrorOutputPrefix: table/error/!{firehose:error-output-type}/
-        Prefix: TENANT=!{partitionKeyFromQuery:TENANT}/YYYY=!{partitionKeyFromQuery:YYYY}/MM=!{partitionKeyFromQuery:MM}//DD=!{partitionKeyFromQuery:DD}/HH=!{partitionKeyFromQuery:HH}/
+        Prefix: TENANT=!{partitionKeyFromQuery:TENANT}/YYYY=!{partitionKeyFromQuery:YYYY}/MM=!{partitionKeyFromQuery:MM}/DD=!{partitionKeyFromQuery:DD}/HH=!{partitionKeyFromQuery:HH}/
         CloudWatchLoggingOptions: 
           Enabled: true
           LogGroupName: !Ref LogGroup

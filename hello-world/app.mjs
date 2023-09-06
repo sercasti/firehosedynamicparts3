@@ -35,7 +35,7 @@ export const lambdaHandler = async (event) => {
 function generateRecord() {
     return {
         id: uuidv4(),
-        created: new Date().toISOString(),
+        created: Math.floor(new Date().getTime() / 1000),
         tenant: tenants.random(),
         change: "changed attrib Name value: xxx to yyy"
     }
