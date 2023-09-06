@@ -17,6 +17,13 @@ Resources:
           Properties:
             Schedule: 'rate(1 minute)'
             Enabled: false
+      Policies:
+      - Statement:
+        - Sid: WriteToFirehose
+          Effect: Allow
+          Action:
+            - firehose:PutRecord
+          Resource: '*'
 
   S3Bucket:
     Type: AWS::S3::Bucket

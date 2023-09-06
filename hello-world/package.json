@@ -7,8 +7,9 @@
   "author": "SAM CLI",
   "license": "MIT",
   "dependencies": {
-    "axios": ">=0.21.1",
+    "@aws-sdk/client-firehose": "^3.405.0",
     "aws-sdk": "^2.1354.0",
+    "axios": ">=0.21.1",
     "uuid": "^9.0.0"
   },
   "devDependencies": {

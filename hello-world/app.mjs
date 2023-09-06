@@ -1,55 +1,44 @@
-const firehose = new (require('aws-sdk/clients/firehose'))({ region: 'us-east-1' })
-const uuid = require('uuid');
+import { FirehoseClient, PutRecordCommand } from "@aws-sdk/client-firehose"; 
+import { v4 as uuidv4 } from 'uuid';
 
 const tenants = ["meli", "tdnube", "ebaymtors"]
+const firehoseClient = new FirehoseClient({ region: "us-east-1" });
 
-export const lambdaHandler = async (event, context) => {
-    try {
-        for (let i = 0; i < 10; i++) {
-            record = generateRandomRecord();
-            streamToKinesis(record);
-        }
-        return {
-            'statusCode': 200,
-            'body': JSON.stringify({
-                message: 'hello world',
-            })
-        }
-    } catch (err) {
-        console.log(err);
-        return err;
+export const lambdaHandler = async (event) => {
+    var params = {
+        DeliveryStreamName: "myDeliveryStream",
+        Record: {
+          Data: "",
+        },
+    };
+   
+    for (let i=0; i<10; i++) {
+      params.Record.Data = Buffer.from(JSON.stringify(generateRecord()));
+      let input = new PutRecordCommand(params);
+      try {
+        let response = await firehoseClient.send(input);
+        console.log(`response: ${JSON.stringify(response, null, 2)}`);
+        console.log("INFO - successfully sent record to firehose");
+      } catch (error) {
+        console.error("couldn't stream", error.stack);
+      }
+    }
+
+    return {
+        'statusCode': 200,
+        'body': JSON.stringify({
+            message: 'done',
+        })
     }
 };
 
-function streamToKinesis(record) {
-    console.log(record)
-    var params = {
-        Record: { Data: JSON.stringify(record) },
-        DeliveryStreamName: "myDeliveryStream"
-    };
-
-    firehose.putRecord(params, function (err, data) {
-        if (err) {
-            console.error("couldn't stream", err.stack);
-        }
-        else {
-            console.log("INFO - successfully sent record to firehose");
-        }
-    });
-
-}
-
-function generateRandomRecord() {
-    var now = new Date().toISOString()
-
-    var record = {
-        id: uuid.v1(),
-        created: now,
-        tenant: tenants.random,
+function generateRecord() {
+    return {
+        id: uuidv4(),
+        created: new Date().toISOString(),
+        tenant: tenants.random(),
         change: "changed attrib Name value: xxx to yyy"
     }
-
-    return record;
 }
 
 Array.prototype.random = function () {
